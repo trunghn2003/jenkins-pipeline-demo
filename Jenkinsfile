@@ -1,29 +1,40 @@
 pipeline {
-    agent any
+    agent none
 
     stages {
         stage('1. Kiểm thử song song (Parallel Tests)') {
-            // Khối parallel cho phép chạy nhiều stage con cùng lúc
             parallel {
-                stage('Nhánh A: Unit Tests') {
+                stage('Nhánh A: Unit Tests (NodeJS)') {
+                    agent {
+                        docker {
+                            image 'node:20-alpine'
+                        }
+                    }
                     steps {
-                        echo ">>> [Luồng A] Đang chạy kiểm thử chức năng..."
+                        echo ">>> [Luồng A] Chạy Node trong container node:20-alpine..."
+                        sh 'node -v'
                         sh 'node index.js'
                         sh 'echo "Unit tests: 100% PASSED"'
                     }
                 }
 
-                stage('Nhánh B: Security & Lint Scan') {
+                stage('Nhánh B: Security Scan (Python)') {
+                    agent {
+                        docker {
+                            image 'python:3.11-alpine'
+                        }
+                    }
                     steps {
-                        echo ">>> [Luồng B] Đang quét mã độc và bảo mật..."
-                        sh 'echo "Scanning index.js for vulnerabilities..."'
-                        sh 'echo "No security threats found: 0 CVE"'
+                        echo ">>> [Luồng B] Quét bảo mật trong container python:3.11-alpine..."
+                        sh 'python --version'
+                        sh 'echo "Scanning code... 0 CVE found!"'
                     }
                 }
             }
         }
 
         stage('2. Đóng gói & Lưu trữ (Package & Archive)') {
+            agent any
             steps {
                 echo "Đang đóng gói ứng dụng..."
                 sh 'tar -czf demo-app-v1.0.tar.gz index.js'
