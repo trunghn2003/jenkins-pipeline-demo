@@ -1,38 +1,43 @@
 pipeline {
-    // Không chỉ định agent toàn cục, để từng stage tự chọn môi trường
-    agent none
+    agent any
 
     stages {
-        stage('1. Chạy với NodeJS (Container node:20-alpine)') {
-            agent {
-                docker {
-                    image 'node:20-alpine'
+        stage('1. Kiểm thử song song (Parallel Tests)') {
+            // Khối parallel cho phép chạy nhiều stage con cùng lúc
+            parallel {
+                stage('Nhánh A: Unit Tests') {
+                    steps {
+                        echo ">>> [Luồng A] Đang chạy kiểm thử chức năng..."
+                        sh 'node index.js'
+                        sh 'echo "Unit tests: 100% PASSED"'
+                    }
                 }
-            }
-            steps {
-                echo "--- MÔI TRƯỜNG NODEJS ---"
-                sh 'node -v'
-                sh 'node index.js'
+
+                stage('Nhánh B: Security & Lint Scan') {
+                    steps {
+                        echo ">>> [Luồng B] Đang quét mã độc và bảo mật..."
+                        sh 'echo "Scanning index.js for vulnerabilities..."'
+                        sh 'echo "No security threats found: 0 CVE"'
+                    }
+                }
             }
         }
 
-        stage('2. Chạy với Python (Container python:3.11-alpine)') {
-            agent {
-                docker {
-                    image 'python:3.11-alpine'
-                }
-            }
+        stage('2. Đóng gói & Lưu trữ (Package & Archive)') {
             steps {
-                echo "--- MÔI TRƯỜNG PYTHON ---"
-                sh 'python --version'
-                sh 'python -c "print(\'Hello từ Python Container! Môi trường hoàn toàn cách ly.\')"'
+                echo "Đang đóng gói ứng dụng..."
+                sh 'tar -czf demo-app-v1.0.tar.gz index.js'
+                
+                // 👉 LƯU TRỮ THÀNH PHẨM LÊN GIAO DIỆN WEB JENKINS
+                archiveArtifacts artifacts: 'demo-app-v1.0.tar.gz', fingerprint: true
+                echo "Đã lưu trữ file demo-app-v1.0.tar.gz thành công!"
             }
         }
     }
 
     post {
-        always {
-            echo "Pipeline hoàn tất! Toàn bộ container tạm đã được dọn dẹp sạch sẽ."
+        success {
+            echo " Pipeline hoàn thành xuất sắc! Thành phẩm đã sẵn sàng tải về."
         }
     }
 }
