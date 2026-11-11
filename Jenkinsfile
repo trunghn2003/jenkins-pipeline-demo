@@ -90,7 +90,7 @@ pipeline {
                         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                             -d "chat_id=${CHAT_ID}" \
                             -d "parse_mode=Markdown" \
-                            -d "text=🚀 *[Jenkins CI/CD] DOCKER HUB RELEASE THÀNH CÔNG!* %0A• *Image:* \`trunghn2003/demo-node-app:${BUILD_NUMBER}\` %0A• *Build:* #${BUILD_NUMBER} %0A• *Kho chứa:* https://hub.docker.com/r/trunghn2003/demo-node-app %0A• *Link:* ${BUILD_URL}"
+                            -d "text=🚀 *[Jenkins CI/CD] DOCKER HUB RELEASE THÀNH CÔNG!* %0A• *Image:* trunghn2003/demo-node-app:${BUILD_NUMBER} %0A• *Build:* #${BUILD_NUMBER} %0A• *Kho chứa:* https://hub.docker.com/r/trunghn2003/demo-node-app %0A• *Link:* ${BUILD_URL}"
                     '''
                 }
             }
