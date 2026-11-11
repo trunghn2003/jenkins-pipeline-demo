@@ -1,6 +1,11 @@
 pipeline {
     agent none
 
+    // ⏰ KÍCH HOẠT TỰ ĐỘNG THĂM DÒ GIT MỖI PHÚT
+    triggers {
+        pollSCM('* * * * *')
+    }
+
     stages {
         stage('1. Kiểm thử song song (Parallel Tests)') {
             parallel {
@@ -14,7 +19,6 @@ pipeline {
                         echo ">>> [Luồng A] Chạy Node trong container node:20-alpine..."
                         sh 'node -v'
                         sh 'node index.js'
-                        sh 'echo "Unit tests: 100% PASSED"'
                     }
                 }
 
@@ -44,7 +48,6 @@ pipeline {
         }
     }
 
-    // 🔔 TỰ ĐỘNG BẮN THÔNG BÁO VỀ TELEGRAM
     post {
         success {
             node('built-in') {
@@ -56,7 +59,7 @@ pipeline {
                         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                             -d "chat_id=${CHAT_ID}" \
                             -d "parse_mode=Markdown" \
-                            -d "text=✅ *[Jenkins CI/CD] BUILD THÀNH CÔNG!* %0A• *Job:* ${JOB_NAME} %0A• *Build:* #${BUILD_NUMBER} %0A• *Trạng thái:* All tests passed! %0A• *Link:* ${BUILD_URL}"
+                            -d "text=🤖 *[Jenkins Auto-CI]* Code mới đã được TEST & BUILD tự động thành công! %0A• *Job:* ${JOB_NAME} %0A• *Build:* #${BUILD_NUMBER} %0A• *Link:* ${BUILD_URL}"
                     '''
                 }
             }
@@ -72,7 +75,7 @@ pipeline {
                         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                             -d "chat_id=${CHAT_ID}" \
                             -d "parse_mode=Markdown" \
-                            -d "text=❌ *[Jenkins CI/CD] CẢNH BÁO BUILD THẤT BẠI!* %0A• *Job:* ${JOB_NAME} %0A• *Build:* #${BUILD_NUMBER} %0A• *Xem chi tiết lỗi tại:* ${BUILD_URL}console"
+                            -d "text=❌ *[Jenkins Auto-CI] CẢNH BÁO BUILD THẤT BẠI!* %0A• *Job:* ${JOB_NAME} %0A• *Build:* #${BUILD_NUMBER} %0A• *Xem chi tiết:* ${BUILD_URL}console"
                     '''
                 }
             }
