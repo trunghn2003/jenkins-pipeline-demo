@@ -1,5 +1,5 @@
 const appName = "Demo Node App";
-const version = "1.0.0";
+const version = "1.0.1";
 
 // Hàm nghiệp vụ tính tổng
 function sum(a, b) {
