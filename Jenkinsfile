@@ -1,13 +1,12 @@
 pipeline {
     agent none
 
-    // ⏰ KÍCH HOẠT TỰ ĐỘNG THĂM DÒ GIT MỖI PHÚT
     triggers {
         pollSCM('* * * * *')
     }
 
     stages {
-        stage('1. Kiểm thử song song (Parallel Tests)') {
+        stage('1. Kiểm thử song song (CI)') {
             parallel {
                 stage('Nhánh A: Unit Tests (NodeJS)') {
                     agent {
@@ -16,7 +15,7 @@ pipeline {
                         }
                     }
                     steps {
-                        echo ">>> [Luồng A] Chạy Node trong container node:20-alpine..."
+                        echo ">>> [Luồng A] Chạy Unit Test..."
                         sh 'node -v'
                         sh 'node index.js'
                     }
@@ -29,7 +28,7 @@ pipeline {
                         }
                     }
                     steps {
-                        echo ">>> [Luồng B] Quét bảo mật trong container python:3.11-alpine..."
+                        echo ">>> [Luồng B] Quét bảo mật..."
                         sh 'python --version'
                         sh 'echo "Scanning code... 0 CVE found!"'
                     }
@@ -37,13 +36,22 @@ pipeline {
             }
         }
 
-        stage('2. Đóng gói & Lưu trữ (Package & Archive)') {
+        stage('2. Đóng gói Docker Image (CD)') {
             agent any
             steps {
-                echo "Đang đóng gói ứng dụng..."
-                sh 'tar -czf demo-app-v1.0.tar.gz index.js'
-                archiveArtifacts artifacts: 'demo-app-v1.0.tar.gz', fingerprint: true
-                echo "Đã lưu trữ file demo-app-v1.0.tar.gz thành công!"
+                echo "Đang đóng gói ứng dụng thành Docker Image..."
+                // Build Docker image gắn tag theo số thứ tự của lượt build: demo-node-app:${BUILD_NUMBER}
+                sh 'docker build -t demo-node-app:${BUILD_NUMBER} -t demo-node-app:latest .'
+                sh 'docker images | grep demo-node-app'
+            }
+        }
+
+        stage('3. Kiểm tra Container chạy thử') {
+            agent any
+            steps {
+                echo "Khởi chạy thử nghiệm container từ image vừa build..."
+                // Chạy thử container để kiểm chứng ứng dụng hoạt động độc lập không cần source code
+                sh 'docker run --rm demo-node-app:${BUILD_NUMBER}'
             }
         }
     }
@@ -59,7 +67,7 @@ pipeline {
                         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                             -d "chat_id=${CHAT_ID}" \
                             -d "parse_mode=Markdown" \
-                            -d "text=🤖 *[Jenkins Auto-CI]* Code mới đã được TEST & BUILD tự động thành công! %0A• *Job:* ${JOB_NAME} %0A• *Build:* #${BUILD_NUMBER} %0A• *Link:* ${BUILD_URL}"
+                            -d "text=🐳 *[Jenkins CI/CD] DOCKER IMAGE BUILD THÀNH CÔNG!* %0A• *Image:* \`demo-node-app:${BUILD_NUMBER}\` %0A• *Job:* ${JOB_NAME} (#${BUILD_NUMBER}) %0A• *Status:* Container test passed! %0A• *Link:* ${BUILD_URL}"
                     '''
                 }
             }
@@ -75,7 +83,7 @@ pipeline {
                         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                             -d "chat_id=${CHAT_ID}" \
                             -d "parse_mode=Markdown" \
-                            -d "text=❌ *[Jenkins Auto-CI] CẢNH BÁO BUILD THẤT BẠI!* %0A• *Job:* ${JOB_NAME} %0A• *Build:* #${BUILD_NUMBER} %0A• *Xem chi tiết:* ${BUILD_URL}console"
+                            -d "text=❌ *[Jenkins CI/CD] BUILD DOCKER THẤT BẠI!* %0A• *Job:* ${JOB_NAME} (#${BUILD_NUMBER}) %0A• *Xem chi tiết:* ${BUILD_URL}console"
                     '''
                 }
             }
