@@ -36,22 +36,45 @@ pipeline {
             }
         }
 
-        stage('2. Đóng gói Docker Image (CD)') {
+        stage('2. Đóng gói Docker Image (CD - Build)') {
             agent any
             steps {
                 echo "Đang đóng gói ứng dụng thành Docker Image..."
-                // Build Docker image gắn tag theo số thứ tự của lượt build: demo-node-app:${BUILD_NUMBER}
                 sh 'docker build -t demo-node-app:${BUILD_NUMBER} -t demo-node-app:latest .'
-                sh 'docker images | grep demo-node-app'
             }
         }
 
         stage('3. Kiểm tra Container chạy thử') {
             agent any
             steps {
-                echo "Khởi chạy thử nghiệm container từ image vừa build..."
-                // Chạy thử container để kiểm chứng ứng dụng hoạt động độc lập không cần source code
+                echo "Khởi chạy thử nghiệm container nội bộ..."
                 sh 'docker run --rm demo-node-app:${BUILD_NUMBER}'
+            }
+        }
+
+        stage('4. Đẩy lên Docker Hub (CD - Push)') {
+            agent any
+            steps {
+                echo "Đang đăng nhập và đẩy Image lên Docker Hub..."
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', 
+                                                 usernameVariable: 'DOCKER_USER', 
+                                                 passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        # Đăng nhập an toàn vào Docker Hub
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+
+                        # Gắn thẻ (Tag) chuẩn username/repository:tag
+                        docker tag demo-node-app:${BUILD_NUMBER} ${DOCKER_USER}/demo-node-app:${BUILD_NUMBER}
+                        docker tag demo-node-app:${BUILD_NUMBER} ${DOCKER_USER}/demo-node-app:latest
+
+                        # Đẩy lên Docker Hub
+                        docker push ${DOCKER_USER}/demo-node-app:${BUILD_NUMBER}
+                        docker push ${DOCKER_USER}/demo-node-app:latest
+
+                        # Đăng xuất
+                        docker logout
+                    '''
+                }
             }
         }
     }
@@ -67,7 +90,7 @@ pipeline {
                         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                             -d "chat_id=${CHAT_ID}" \
                             -d "parse_mode=Markdown" \
-                            -d "text=🐳 *[Jenkins CI/CD] DOCKER IMAGE BUILD THÀNH CÔNG!* %0A• *Image:* \`demo-node-app:${BUILD_NUMBER}\` %0A• *Job:* ${JOB_NAME} (#${BUILD_NUMBER}) %0A• *Status:* Container test passed! %0A• *Link:* ${BUILD_URL}"
+                            -d "text=🚀 *[Jenkins CI/CD] DOCKER HUB RELEASE THÀNH CÔNG!* %0A• *Image:* \`trunghn2003/demo-node-app:${BUILD_NUMBER}\` %0A• *Build:* #${BUILD_NUMBER} %0A• *Kho chứa:* https://hub.docker.com/r/trunghn2003/demo-node-app %0A• *Link:* ${BUILD_URL}"
                     '''
                 }
             }
@@ -83,7 +106,7 @@ pipeline {
                         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                             -d "chat_id=${CHAT_ID}" \
                             -d "parse_mode=Markdown" \
-                            -d "text=❌ *[Jenkins CI/CD] BUILD DOCKER THẤT BẠI!* %0A• *Job:* ${JOB_NAME} (#${BUILD_NUMBER}) %0A• *Xem chi tiết:* ${BUILD_URL}console"
+                            -d "text=❌ *[Jenkins CI/CD] ĐẨY DOCKER HUB THẤT BẠI!* %0A• *Build:* #${BUILD_NUMBER} %0A• *Xem chi tiết lỗi:* ${BUILD_URL}console"
                     '''
                 }
             }
