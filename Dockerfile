@@ -1,11 +1,17 @@
-# Sử dụng base image NodeJS siêu nhẹ (Alpine Linux)
+# Sử dụng Node.js 20 trên Alpine Linux
 FROM node:20-alpine
 
-# Thư mục làm việc bên trong container
+# Thư mục làm việc
 WORKDIR /app
 
-# Copy mã nguồn vào container
+# Copy mã nguồn
 COPY index.js .
 
-# Lệnh mặc định khi container khởi động
+# Chuyển quyền sở hữu cho user node
+RUN chown -R node:node /app
+
+# Chạy container bằng user không phải root
+USER node
+
+# Lệnh chạy ứng dụng
 CMD ["node", "index.js"]
