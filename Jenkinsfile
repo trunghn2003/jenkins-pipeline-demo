@@ -34,16 +34,23 @@ pipeline {
         )
     }
 
+    environment {
+        PROJECT_KEY = "${params.PROJECT_KEY ?: 'vts-payment-service'}"
+        RUNTIME_VERSION = "${params.RUNTIME_VERSION ?: '20-alpine'}"
+        SRC_PATH = "${params.SRC_PATH ?: '.'}"
+        ENFORCE_QUALITY_GATE = "${params.ENFORCE_QUALITY_GATE != null ? params.ENFORCE_QUALITY_GATE : false}"
+    }
+
     stages {
         stage('1. Kiểm thử chức năng (Unit Tests)') {
             agent {
                 docker {
-                    image "node:${params.RUNTIME_VERSION}"
+                    image "node:${params.RUNTIME_VERSION ?: '20-alpine'}"
                 }
             }
             steps {
-                echo ">>> [Unit Test] Chạy trên Node.js ${params.RUNTIME_VERSION}..."
-                dir("${params.SRC_PATH}") {
+                echo ">>> [Unit Test] Chạy trên Node.js ${env.RUNTIME_VERSION}..."
+                dir("${env.SRC_PATH}") {
                     sh 'node -v'
                     sh 'node index.js'
                 }
@@ -55,26 +62,26 @@ pipeline {
                 // ==================== NHÁNH 1: SONARQUBE THẬT ====================
                 stage('Quét SonarQube (Code Quality)') {
                     when {
-                        expression { return params.RUN_SONARQUBE }
+                        expression { return params.RUN_SONARQUBE != false }
                     }
                     agent {
                         docker {
                             image 'sonarsource/sonar-scanner-cli:latest'
-                            args '--entrypoint="" --network jenkin_default'
+                            args '--network jenkin_default'
                         }
                     }
                     steps {
                         echo "=========================================================="
                         echo "🔍 BẮT ĐẦU QUÉT SONARQUBE THẬT (STATIC CODE ANALYSIS)"
                         echo "• Server: http://sonarqube:9000"
-                        echo "• Project Key: ${params.PROJECT_KEY}"
+                        echo "• Project Key: ${env.PROJECT_KEY}"
                         echo "=========================================================="
-                        dir("${params.SRC_PATH}") {
+                        dir("${env.SRC_PATH}") {
                             withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                                 sh '''
                                     sonar-scanner \
                                         -Dsonar.host.url=http://sonarqube:9000 \
-                                        -Dsonar.login=${SONAR_TOKEN} \
+                                        -Dsonar.token=${SONAR_TOKEN} \
                                         -Dsonar.projectKey=${PROJECT_KEY} \
                                         -Dsonar.qualitygate.wait=true \
                                         -Dsonar.sources=.
@@ -87,20 +94,20 @@ pipeline {
                 // ==================== NHÁNH 2: SAST BẢO MẬT THẬT ====================
                 stage('Quét An ninh SAST (Security Vulnerabilities)') {
                     when {
-                        expression { return params.RUN_SAST }
+                        expression { return params.RUN_SAST != false }
                     }
                     agent {
                         docker {
                             image 'returntocorp/semgrep:latest'
-                            args '--entrypoint="" --network jenkin_default'
+                            args '--network jenkin_default'
                         }
                     }
                     steps {
                         echo "=========================================================="
                         echo "🛡️ BẮT ĐẦU QUÉT BẢO MẬT SAST THẬT (OWASP Top 10)"
-                        echo "• Project: ${params.PROJECT_KEY}"
+                        echo "• Project: ${env.PROJECT_KEY}"
                         echo "=========================================================="
-                        dir("${params.SRC_PATH}") {
+                        dir("${env.SRC_PATH}") {
                             sh '''
                                 if [ "${ENFORCE_QUALITY_GATE}" = "true" ]; then
                                     echo ">>> [STRICT MODE] Bật chặn build nếu phát hiện lỗi bảo mật..."
@@ -120,10 +127,10 @@ pipeline {
             agent any
             steps {
                 echo "Đóng gói ứng dụng sau khi đã vượt qua các cổng an ninh..."
-                dir("${params.SRC_PATH}") {
-                    sh "tar -czf ${params.PROJECT_KEY}-verified.tar.gz index.js"
-                    archiveArtifacts artifacts: "${params.PROJECT_KEY}-verified.tar.gz", fingerprint: true
-                    echo "Đã lưu trữ gói phần mềm an toàn: ${params.PROJECT_KEY}-verified.tar.gz"
+                dir("${env.SRC_PATH}") {
+                    sh "tar -czf ${env.PROJECT_KEY}-verified.tar.gz index.js"
+                    archiveArtifacts artifacts: "${env.PROJECT_KEY}-verified.tar.gz", fingerprint: true
+                    echo "Đã lưu trữ gói phần mềm an toàn: ${env.PROJECT_KEY}-verified.tar.gz"
                 }
             }
         }
