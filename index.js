@@ -12,8 +12,8 @@ function sum(a, b) {
 // ====================================================================
 function processPaymentCallback(callbackPayload) {
     console.log("Đang xử lý kết quả thanh toán từ khách hàng...");
-    // return eval("(" + callbackPayload + ")"); 
-    return JSON.parse("(" + callbackPayload + ")"); 
+    // Vá an toàn: Dùng JSON.parse() thay cho eval()
+    return JSON.parse(callbackPayload); 
 }
 
 console.log(`Starting ${appName} v${version}...`);
