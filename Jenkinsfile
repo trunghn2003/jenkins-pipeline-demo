@@ -140,7 +140,7 @@ pipeline {
                         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                             -d "chat_id=${CHAT_ID}" \
                             -d "parse_mode=Markdown" \
-                            -d "text=🛡️ *[VTS Security Pipeline] BẢO MẬT & CHẤT LƯỢNG ĐẠT CHUẨN!* %0A• *Dự án:* \`${PROJECT_KEY}\` %0A• *Môi trường:* Node.js \`${RUNTIME_VERSION}\` %0A• *SonarQube:* PASSED ✅ %0A• *SAST:* PASSED ✅ %0A• *Thành phẩm:* \`${PROJECT_KEY}-verified.tar.gz\` %0A• *Build:* #${BUILD_NUMBER} %0A• *Link:* ${BUILD_URL}"
+                            -d "text=🛡️ *[VTS Security Pipeline] BẢO MẬT & CHẤT LƯỢNG ĐẠT CHUẨN!* %0A• *Dự án:* ${PROJECT_KEY} %0A• *Môi trường:* Node.js ${RUNTIME_VERSION} %0A• *SonarQube:* PASSED ✅ %0A• *SAST:* PASSED ✅ %0A• *Thành phẩm:* ${PROJECT_KEY}-verified.tar.gz %0A• *Build:* #${BUILD_NUMBER} %0A• *Link:* ${BUILD_URL}"
                     '''
                 }
             }
@@ -155,7 +155,7 @@ pipeline {
                         curl -s -X POST "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
                             -d "chat_id=${CHAT_ID}" \
                             -d "parse_mode=Markdown" \
-                            -d "text=❌ *[VTS Security Pipeline] PHÁT HIỆN LỖI BẢO MẬT / CHẤT LƯỢNG!* %0A• *Dự án:* \`${PROJECT_KEY}\` %0A• *Build:* #${BUILD_NUMBER} %0A• *Xem chi tiết:* ${BUILD_URL}console"
+                            -d "text=❌ *[VTS Security Pipeline] PHÁT HIỆN LỖI BẢO MẬT / CHẤT LƯỢNG!* %0A• *Dự án:* ${PROJECT_KEY} %0A• *Build:* #${BUILD_NUMBER} %0A• *Xem chi tiết:* ${BUILD_URL}console"
                     '''
                 }
             }
